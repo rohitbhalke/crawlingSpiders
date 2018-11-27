@@ -68,10 +68,8 @@ public class CityService {
             list = response.getResults();
             LOG.debug("Results: " + list.size());
             LOG.info("Fetched data from solr!");
-        } catch (SolrServerException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching data from solr", e);
         }
         return list.size();
     }
