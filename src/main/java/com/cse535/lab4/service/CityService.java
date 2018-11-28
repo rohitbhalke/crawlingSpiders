@@ -26,7 +26,7 @@ public class CityService {
     private Environment env;
 
     private static final Logger LOG = LoggerFactory.getLogger(CityService.class);
-    private static final String[] cities = {"NYC","Paris","Delhi", "Bangkok", "Mexico"};
+    private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
 
     public JSONObject getCityTweetCount(String city) {
         LOG.info("Fetching city-tweet count..");
@@ -61,7 +61,7 @@ public class CityService {
         SolrClient solrClient = controller.getSolrClient();
         SolrQuery query = new SolrQuery();
         query.set("q", cityQuery);
-        query.set("rows", "1000");
+        query.set("rows", "1000000");
         LOG.debug("Query: " + query.getQuery());
         try {
             QueryResponse response = solrClient.query(query);
