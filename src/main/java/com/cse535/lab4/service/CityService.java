@@ -30,7 +30,7 @@ public class CityService {
     private Environment env;
 
     private static final Logger LOG = LoggerFactory.getLogger(CityService.class);
-    private static final String[] cities = {"NYC","Paris","Delhi", "Bangkok", "Mexico"};
+    private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
 
     public JSONObject getCityTweetCount(String city) {
         LOG.info("Fetching city-tweet count..");
