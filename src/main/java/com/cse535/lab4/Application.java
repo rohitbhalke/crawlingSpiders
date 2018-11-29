@@ -22,7 +22,7 @@ public class Application {
         executor.setCorePoolSize(5);
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("CityTweetCount-");
+        executor.setThreadNamePrefix("CrawlingSyiders-");
         executor.initialize();
         return executor;
     }

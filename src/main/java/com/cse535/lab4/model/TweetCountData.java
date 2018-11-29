@@ -1,11 +1,11 @@
 package com.cse535.lab4.model;
 
 
-public class CityTweetCount {
+public class TweetCountData {
 
     String city;
     String country;
-    int tweetCount;
+    long tweetCount;
 
     public String getCity() {
         return city;
@@ -23,11 +23,11 @@ public class CityTweetCount {
         this.country = country;
     }
 
-    public int getTweetCount() {
+    public long getTweetCount() {
         return tweetCount;
     }
 
-    public void setTweetCount(int tweetCount) {
+    public void setTweetCount(long tweetCount) {
         this.tweetCount = tweetCount;
     }
 }
