@@ -1,21 +1,19 @@
 package com.cse535.lab4.model;
 
-import org.apache.solr.common.SolrDocumentList;
+import java.util.ArrayList;
 
 public class TweetData {
     long total;
     long start;
+    ArrayList<Tweet> tweets;
 
-    public SolrDocumentList getTweets() {
+    public ArrayList<Tweet> getTweets() {
         return tweets;
     }
 
-    public void setTweets(SolrDocumentList tweets) {
+    public void setTweets(ArrayList<Tweet> tweets) {
         this.tweets = tweets;
     }
-
-    SolrDocumentList tweets;
-
 
     public long getTotal() {
         return total;

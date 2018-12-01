@@ -1,12 +1,15 @@
 package com.cse535.lab4.service;
 
 import com.cse535.lab4.controller.Controller;
+import com.cse535.lab4.model.Tweet;
 import com.cse535.lab4.model.TweetCountData;
 import com.cse535.lab4.model.TweetData;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
@@ -17,6 +20,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -30,11 +34,15 @@ public class SearchService {
     private static final Logger LOG = LoggerFactory.getLogger(SearchService.class);
     private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
 
-    public TweetData getTweets(String city, Integer start, int docs) {
+    public TweetData getTweets(String city, String lang, Integer start, int docs) {
         LOG.info("Fetching tweets from solr..");
         TweetData tweetData = new TweetData();
         String cityQuery;
-        if(city != null)
+        if(city != null && lang != null)
+            cityQuery = "city:" + city + " AND lang:" + lang;
+        else if(city == null && lang != null)
+            cityQuery = "lang:" + lang;
+        else if(lang == null && city != null)
             cityQuery = "city:" + city;
         else
             cityQuery = "*:*";
@@ -49,7 +57,7 @@ public class SearchService {
             if(response != null) {
                 tweetData.setStart(start);
                 tweetData.setTotal(response.getResults().getNumFound());
-                tweetData.setTweets(response.getResults());
+                tweetData.setTweets(parseTweets(response.getResults()));
                 LOG.info("Fetched tweets from solr!");
             } else {
                 LOG.info("No search result from solr for query: " + query.getQuery());
@@ -59,7 +67,6 @@ public class SearchService {
         }
         return tweetData;
     }
-
 
     public JSONObject getCityTweetCount(String city) {
         LOG.info("Fetching city-tweet count..");
@@ -116,8 +123,38 @@ public class SearchService {
         }
         TweetCountData cityObj = new TweetCountData();
         cityObj.setCity(city);
-        cityObj.setCountry(env.getProperty(city));
+        cityObj.setCountry(env.getProperty(city.toLowerCase()));
         cityObj.setTweetCount(tweetCount);
         return CompletableFuture.completedFuture(cityObj);
+    }
+
+    private ArrayList<Tweet> parseTweets(SolrDocumentList results) {
+        ArrayList<Tweet> tweets = new ArrayList<>();
+        for(SolrDocument doc : results) {
+            Tweet tweet = new Tweet();
+            tweet.setId((String) doc.get("id"));
+            ArrayList<String> data = (ArrayList<String>) doc.get("text");
+            tweet.setSummary(data.get(0));
+            data = (ArrayList<String>) doc.get("user.profile_image_url");
+            if (data != null) {
+                tweet.setProfileURL(data.get(0));
+            } else {
+                tweet.setProfileURL("");
+            }
+            data = (ArrayList<String>) doc.get("entities.urls.url");
+            if (data != null) {
+                tweet.setTwitterURL(data.get(0));
+            } else {
+                tweet.setTwitterURL("");
+            }
+            data = (ArrayList<String>) doc.get("lang");
+            if (data != null) {
+                tweet.setLanguage(data.get(0));
+            } else {
+                tweet.setLanguage("");
+            }
+            tweets.add(tweet);
+        }
+        return tweets;
     }
 }
