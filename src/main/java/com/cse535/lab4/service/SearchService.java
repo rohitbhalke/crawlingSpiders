@@ -1,12 +1,14 @@
 package com.cse535.lab4.service;
 
 import com.cse535.lab4.controller.Controller;
+import com.cse535.lab4.model.Hashtag;
 import com.cse535.lab4.model.Tweet;
 import com.cse535.lab4.model.TweetCountData;
 import com.cse535.lab4.model.TweetData;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -14,6 +16,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Async;
@@ -21,15 +24,18 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Service
-public class SearchService {
+public class SearchService implements InitializingBean {
     @Autowired
     private Controller controller;
     @Autowired
     private Environment env;
+
+    private ArrayList<Hashtag> hashtags;
 
     private static final Logger LOG = LoggerFactory.getLogger(SearchService.class);
     private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
@@ -37,18 +43,29 @@ public class SearchService {
     public TweetData getTweets(String city, String lang, Integer start, int docs) {
         LOG.info("Fetching tweets from solr..");
         TweetData tweetData = new TweetData();
-        String cityQuery;
-        if(city != null && lang != null)
-            cityQuery = "city:" + city + " AND lang:" + lang;
-        else if(city == null && lang != null)
-            cityQuery = "lang:" + lang;
+        String requestQuery;
+        String langQuery = "";
+        if(lang != null) {
+            langQuery = langQuery + "(";
+            String [] languages = lang.split(",");
+            for(int i=0; i<languages.length; i++) {
+                if(i>0)
+                    langQuery = langQuery + " OR ";
+                langQuery = langQuery + "lang:" + languages[i];
+            }
+            langQuery = langQuery + ")";
+        }
+        if(city != null && !langQuery.isEmpty())
+            requestQuery = "city:" + city + " AND " + langQuery;
+        else if(city == null && !langQuery.isEmpty())
+            requestQuery = langQuery;
         else if(lang == null && city != null)
-            cityQuery = "city:" + city;
+            requestQuery = "city:" + city;
         else
-            cityQuery = "*:*";
+            requestQuery = "*:*";
         SolrClient solrClient = controller.getSolrClient();
         SolrQuery query = new SolrQuery();
-        query.set("q", cityQuery);
+        query.set("q", requestQuery);
         query.set("rows", docs);
         query.setStart(start);
         LOG.debug("Query: " + query.getQuery());
@@ -156,5 +173,43 @@ public class SearchService {
             tweets.add(tweet);
         }
         return tweets;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        hashtags = getHashtagsList();
+    }
+
+    private ArrayList<Hashtag> getHashtagsList() {
+        ArrayList<Hashtag> hashtags = new ArrayList<>();
+        LOG.debug("Fetching hashtags from solr..");
+        SolrClient solrClient = controller.getSolrClient();
+        SolrQuery query = new SolrQuery();
+        query.set("q", "*:*");
+        query.set("rows", "0");
+        query.setStart(0);
+        query.setFacet(true);
+        query.addFacetField("hashtags");
+        LOG.debug("Query: " + query.getQuery());
+        try {
+            //response.getFacetFields().get(0)._values
+            QueryResponse response = solrClient.query(query);
+            List<FacetField.Count> tags = response.getFacetFields().get(0).getValues();
+            for(int i=0; i<20; i++) {
+                Hashtag tag = new Hashtag();
+                FacetField.Count cTag = tags.get(i);
+                tag.setName(cTag.getName());
+                tag.setCount(cTag.getCount());
+                hashtags.add(tag);
+            }
+            LOG.info("Fetched hashtags list from solr");
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching data from solr", e);
+        }
+        return hashtags;
+    }
+
+    public ArrayList<Hashtag> getHashtags() {
+        return hashtags;
     }
 }

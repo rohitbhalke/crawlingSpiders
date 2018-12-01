@@ -1,5 +1,6 @@
 package com.cse535.lab4.controller;
 
+import com.cse535.lab4.model.Hashtag;
 import com.cse535.lab4.model.TweetData;
 import com.cse535.lab4.service.SearchService;
 import org.json.simple.JSONObject;
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
 
 @RestController
 public class SearchController {
@@ -42,5 +45,11 @@ public class SearchController {
     public TweetData getTweets(@RequestParam(value = "city", required = false) String city, @RequestParam(value = "lang", required = false) String lang, @RequestParam(value = "start", required = false, defaultValue = "0") Integer start, @RequestParam(value = "docs", required = false, defaultValue = "10") int docs) {
         LOG.info("Fetching tweets..");
         return searchService.getTweets(city,lang,start,docs);
+    }
+
+    @GetMapping(value = {"/tweets/hashtags/list"})
+    public ArrayList<Hashtag> getHashtags() {
+        LOG.info("Fetching hashtags..");
+        return searchService.getHashtags();
     }
 }
