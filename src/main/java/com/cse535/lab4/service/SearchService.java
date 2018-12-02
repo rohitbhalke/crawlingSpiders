@@ -52,24 +52,34 @@ public class SearchService implements InitializingBean {
     public TweetData getTweets(String search, String city, String lang, Integer start, int docs) {
         LOG.info("Fetching tweets from solr..");
         TweetData tweetData = new TweetData();
-        String requestQuery;
+        String requestQuery = "";
         String langQuery = "";
         String searchQuery = "";
+        String cityQuery;
+
+        if(city != null) {
+            cityQuery = "city:" + city;
+            requestQuery = requestQuery + cityQuery;
+        }
 
         if(search != null) {
-            String[] strs = search.split(" ");
+            String[] strs = search.split(",");
             for (int i=0; i<strs.length; i++) {
                 String s = strs[i];
                 if(i>0)
-                    searchQuery = searchQuery + " OR ";
-                else
-                    ;
-                if (s.startsWith("#")) {
+                    searchQuery = searchQuery + " AND ";
+                if(s.startsWith("\"")) {
+                    searchQuery = searchQuery + s.substring(1,s.length()-1);
+                } else if (s.startsWith("#")) {
                     searchQuery = searchQuery + "hashtags:" + s.substring(1,s.length());
                 } else {
-                    searchQuery = searchQuery + "text:" + s;
+                    searchQuery = searchQuery + s;
                 }
             }
+            if(requestQuery.isEmpty())
+                requestQuery = searchQuery;
+            else
+                requestQuery = requestQuery + " AND " + searchQuery;
         }
 
         if(lang != null) {
@@ -81,23 +91,12 @@ public class SearchService implements InitializingBean {
                 langQuery = langQuery + "lang:" + languages[i];
             }
             langQuery = langQuery + ")";
+            if(requestQuery.isEmpty())
+                requestQuery = langQuery;
+            else
+                requestQuery = requestQuery + " AND " + langQuery;
         }
-
-        if(city != null && !langQuery.isEmpty() && !searchQuery.isEmpty())
-            requestQuery = "city:" + city + " AND " + langQuery + "AND" + searchQuery;
-        else if(city == null && !langQuery.isEmpty() && !searchQuery.isEmpty())
-            requestQuery = langQuery + "AND" + searchQuery;
-        else if(lang == null && city != null && !searchQuery.isEmpty())
-            requestQuery = "city:" + city + "AND" + searchQuery;
-        else if(search == null && city != null && !langQuery.isEmpty())
-            requestQuery = "city:" + city + " AND " + langQuery;
-        else if(city == null && lang == null && !searchQuery.isEmpty())
-            requestQuery = searchQuery;
-        else if(city == null && search == null && !langQuery.isEmpty())
-            requestQuery = langQuery;
-        else if(lang == null && search == null && city != null)
-            requestQuery = city;
-        else
+        if(requestQuery.isEmpty())
             requestQuery = "*:*";
         SolrClient solrClient = controller.getSolrClient();
         SolrQuery query = new SolrQuery();
@@ -160,7 +159,7 @@ public class SearchService implements InitializingBean {
         JSONObject languageData = new JSONObject();
         JSONArray languageObj = new JSONArray();
         if(language != null) {
-            CompletableFuture<TweetCountData> data = getTweetCountForCity(language);
+            CompletableFuture<LanguageTweetData> data = getTweetCountForLangauage(language);
             CompletableFuture.completedFuture(data).join();
             try {
                 languageObj.add(data.get());
@@ -338,7 +337,7 @@ public class SearchService implements InitializingBean {
         SolrClient solrClient = controller.getSolrClient();
         SolrQuery query = new SolrQuery();
         query.set("q", "*:*");
-        query.set("rows", "1000000");
+        query.set("rows", "1");
         query.setStart(0);
         query.set("fq", weekQuery);
         LOG.debug("Query: " + query.getQuery());
