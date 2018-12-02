@@ -53,9 +53,9 @@ public class SearchController {
      * @return
      */
     @GetMapping(value = {"/tweets/list"})
-    public TweetData getTweets(@RequestParam(value = "city", required = false) String city, @RequestParam(value = "lang", required = false) String lang, @RequestParam(value = "start", required = false, defaultValue = "0") Integer start, @RequestParam(value = "docs", required = false, defaultValue = "10") int docs) {
+    public TweetData getTweets(@RequestParam(value = "search", required = false) String search, @RequestParam(value = "city", required = false) String city, @RequestParam(value = "lang", required = false) String lang, @RequestParam(value = "start", required = false, defaultValue = "0") Integer start, @RequestParam(value = "docs", required = false, defaultValue = "10") int docs) {
         LOG.info("Fetching tweets..");
-        return searchService.getTweets(city,lang,start,docs);
+        return searchService.getTweets(search,city,lang,start,docs);
     }
 
     /**
