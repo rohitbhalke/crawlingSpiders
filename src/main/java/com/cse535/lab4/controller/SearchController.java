@@ -22,14 +22,25 @@ public class SearchController {
     private static final Logger LOG = LoggerFactory.getLogger(SearchController.class);
 
     /**
-     * API- http://localhost:5000/tweets/count?city=NYC
+     * API- http://localhost:5000/tweets/cities/count?city=NYC
      * @param city non-mandatory query param, if not provided- perform search on all 5 cities
      * @return
      */
-    @GetMapping(value = {"/tweets/count"})
+    @GetMapping(value = {"/tweets/cities/count"})
     public JSONObject getCityTweetCount(@RequestParam(value = "city", required = false) String city) {
         LOG.info("Fetching city-tweet count..");
         return searchService.getCityTweetCount(city);
+    }
+
+    /**
+     * API- http://localhost:5000/tweets/languages/count?lang=en
+     * @param language non-mandatory query param, if not provided- perform search on all 5 languages
+     * @return
+     */
+    @GetMapping(value = {"/tweets/languages/count"})
+    public JSONObject getLanguageTweetCount(@RequestParam(value = "lang", required = false) String language) {
+        LOG.info("Fetching lang-tweet count..");
+        return searchService.getLanguageTweetCount(language);
     }
 
     /**
@@ -62,4 +73,6 @@ public class SearchController {
         LOG.info("Fetching weekly volume data..");
         return searchService.getWeeklyTweetVolumeData();
     }
+
+
 }
