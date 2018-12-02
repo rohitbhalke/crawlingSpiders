@@ -1,17 +1,19 @@
 package com.cse535.lab4.model;
 
+import org.json.simple.JSONObject;
+
 import java.util.ArrayList;
 
 public class TweetData {
     long total;
     long start;
-    ArrayList<Tweet> tweets;
+    ArrayList<JSONObject> tweets;
 
-    public ArrayList<Tweet> getTweets() {
+    public ArrayList<JSONObject> getTweets() {
         return tweets;
     }
 
-    public void setTweets(ArrayList<Tweet> tweets) {
+    public void setTweets(ArrayList<JSONObject> tweets) {
         this.tweets = tweets;
     }
 

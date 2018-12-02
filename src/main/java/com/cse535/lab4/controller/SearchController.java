@@ -47,6 +47,10 @@ public class SearchController {
         return searchService.getTweets(city,lang,start,docs);
     }
 
+    /**
+     * API- http://localhost:5000/tweets/hashtags/list
+     * @return list of top 20 hashtags
+     */
     @GetMapping(value = {"/tweets/hashtags/list"})
     public ArrayList<Hashtag> getHashtags() {
         LOG.info("Fetching hashtags..");

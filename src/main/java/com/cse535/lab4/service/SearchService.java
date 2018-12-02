@@ -2,7 +2,6 @@ package com.cse535.lab4.service;
 
 import com.cse535.lab4.controller.Controller;
 import com.cse535.lab4.model.Hashtag;
-import com.cse535.lab4.model.Tweet;
 import com.cse535.lab4.model.TweetCountData;
 import com.cse535.lab4.model.TweetData;
 import org.apache.solr.client.solrj.SolrClient;
@@ -145,30 +144,55 @@ public class SearchService implements InitializingBean {
         return CompletableFuture.completedFuture(cityObj);
     }
 
-    private ArrayList<Tweet> parseTweets(SolrDocumentList results) {
-        ArrayList<Tweet> tweets = new ArrayList<>();
+    private ArrayList<JSONObject> parseTweets(SolrDocumentList results) {
+        ArrayList<JSONObject> tweets = new ArrayList<>();
         for(SolrDocument doc : results) {
-            Tweet tweet = new Tweet();
-            tweet.setId((String) doc.get("id"));
+            JSONObject tweet = new JSONObject();
+            tweet.put("id",(String) doc.get("id"));
+            tweet.put("city",doc.get("city"));
             ArrayList<String> data = (ArrayList<String>) doc.get("text");
-            tweet.setSummary(data.get(0));
+            tweet.put("summary",data.get(0));
             data = (ArrayList<String>) doc.get("user.profile_image_url");
             if (data != null) {
-                tweet.setProfileURL(data.get(0));
+                tweet.put("user.profile_image_url",data.get(0));
             } else {
-                tweet.setProfileURL("");
+                tweet.put("user.profile_image_url","");
             }
-            data = (ArrayList<String>) doc.get("entities.urls.url");
+            data = (ArrayList<String>) doc.get("user.entities.url.urls.expanded_url");
             if (data != null) {
-                tweet.setTwitterURL(data.get(0));
+                tweet.put("user.entities.url.urls.expanded_url",data.get(0));
             } else {
-                tweet.setTwitterURL("");
+                tweet.put("user.entities.url.urls.expanded_url","");
             }
-            data = (ArrayList<String>) doc.get("lang");
+            data = (ArrayList<String>) doc.get("user.followers_count");
             if (data != null) {
-                tweet.setLanguage(data.get(0));
+                tweet.put("user.followers_count",data.get(0));
             } else {
-                tweet.setLanguage("");
+                tweet.put("user.followers_count","");
+            }
+            data = (ArrayList<String>) doc.get("user.friends_count");
+            if (data != null) {
+                tweet.put("user.friends_count",data.get(0));
+            } else {
+                tweet.put("user.friends_count", "");
+            }
+            data = (ArrayList<String>) doc.get("user.location");
+            if (data != null) {
+                tweet.put("user.location",data.get(0));
+            } else {
+                tweet.put("user.location", "");
+            }
+            data = (ArrayList<String>) doc.get("user.screen_name");
+            if (data != null) {
+                tweet.put("user.screen_name",data.get(0));
+            } else {
+                tweet.put("user.screen_name", "");
+            }
+            data = (ArrayList<String>) doc.get("user.name");
+            if (data != null) {
+                tweet.put("user.name",data.get(0));
+            } else {
+                tweet.put("user.name", "");
             }
             tweets.add(tweet);
         }
