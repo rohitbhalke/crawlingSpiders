@@ -33,6 +33,17 @@ public class SearchController {
     }
 
     /**
+     * API- http://localhost:5000/tweets/language-count?lang=en
+     * @param language non-mandatory query param, if not provided- perform search on all 5 languages
+     * @return
+     */
+    @GetMapping(value = {"/tweets/languages"})
+    public JSONObject getLanguageTweetCount(@RequestParam(value = "lang", required = false) String language) {
+        LOG.info("Fetching lang-tweet count..");
+        return searchService.getLanguageTweetCount(language);
+    }
+
+    /**
      * API- http://localhost:5000/tweets?city=NYC,Delhi&lang=en,es&docs=10&start=0
      * API honors provided params else perform a wild search
      * @param city non-mandatory param, if not provided, perform a wild search "*:*"

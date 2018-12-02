@@ -2,6 +2,7 @@ package com.cse535.lab4.service;
 
 import com.cse535.lab4.controller.Controller;
 import com.cse535.lab4.model.Hashtag;
+import com.cse535.lab4.model.LanguageTweetData;
 import com.cse535.lab4.model.TweetCountData;
 import com.cse535.lab4.model.TweetData;
 import org.apache.solr.client.solrj.SolrClient;
@@ -116,6 +117,65 @@ public class SearchService implements InitializingBean {
         cityTweets.put("cities",citiyData);
         LOG.info("Fetched city-tweet data!");
         return cityTweets;
+    }
+
+    public JSONObject getLanguageTweetCount(String language) {
+        LOG.info("Fetching language-tweet count..");
+        JSONObject languageData = new JSONObject();
+        JSONArray languageObj = new JSONArray();
+        if(language != null) {
+            CompletableFuture<TweetCountData> data = getTweetCountForCity(language);
+            CompletableFuture.completedFuture(data).join();
+            try {
+                languageObj.add(data.get());
+            } catch (InterruptedException | ExecutionException e) {
+                LOG.error("Error fetching tweet count for language " + language, e);
+            }
+        } else {
+            CompletableFuture<LanguageTweetData> en = getTweetCountForLangauage("en");
+            CompletableFuture<LanguageTweetData> es = getTweetCountForLangauage("es");
+            CompletableFuture<LanguageTweetData> fr = getTweetCountForLangauage("fr");
+            CompletableFuture<LanguageTweetData> hi = getTweetCountForLangauage("hi");
+            CompletableFuture<LanguageTweetData> th =  getTweetCountForLangauage("th");
+            CompletableFuture.allOf(en,es,fr,hi,th).join();
+            try {
+                languageObj.add(en.get());
+                languageObj.add(es.get());
+                languageObj.add(fr.get());
+                languageObj.add(hi.get());
+                languageObj.add(th.get());
+            } catch (InterruptedException | ExecutionException e) {
+                LOG.error("Error fetching tweet count for language " + language, e);
+            }
+        }
+        languageData.put("languages",languageObj);
+        LOG.info("Fetched language-tweet data!");
+        return languageData;
+    }
+
+    @Async
+    public CompletableFuture<LanguageTweetData> getTweetCountForLangauage(String language) {
+        long tweetCount = 0;
+        String cityQuery = "lang:" + language;
+        LOG.debug("Fetching tweet count from solr for " + language);
+        SolrClient solrClient = controller.getSolrClient();
+        SolrQuery query = new SolrQuery();
+        query.set("q", cityQuery);
+        query.set("rows", "1");
+        query.setStart(0);
+        LOG.debug("Query: " + query.getQuery());
+        try {
+            QueryResponse response = solrClient.query(query);
+            tweetCount = response.getResults().getNumFound();
+            LOG.debug("Tweet count: " + tweetCount);
+            LOG.info("Fetched tweet count from solr for " + language);
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching data from solr", e);
+        }
+        LanguageTweetData data = new LanguageTweetData();
+        data.setCount(tweetCount);
+        data.setLanguage(language);
+        return CompletableFuture.completedFuture(data);
     }
 
     @Async
