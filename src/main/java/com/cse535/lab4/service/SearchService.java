@@ -40,11 +40,29 @@ public class SearchService implements InitializingBean {
     private static final Logger LOG = LoggerFactory.getLogger(SearchService.class);
     private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
 
-    public TweetData getTweets(String city, String lang, Integer start, int docs) {
+    public TweetData getTweets(String search, String city, String lang, Integer start, int docs) {
         LOG.info("Fetching tweets from solr..");
         TweetData tweetData = new TweetData();
         String requestQuery;
         String langQuery = "";
+        String searchQuery = "";
+
+        if(search != null) {
+            String[] strs = search.split(" ");
+            for (int i=0; i<strs.length; i++) {
+                String s = strs[i];
+                if(i>0)
+                    searchQuery = searchQuery + " OR ";
+                else
+                    ;
+                if (s.startsWith("#")) {
+                    searchQuery = searchQuery + "hashtags:" + s.substring(1,s.length());
+                } else {
+                    searchQuery = searchQuery + "text:" + s;
+                }
+            }
+        }
+
         if(lang != null) {
             langQuery = langQuery + "(";
             String [] languages = lang.split(",");
@@ -55,12 +73,21 @@ public class SearchService implements InitializingBean {
             }
             langQuery = langQuery + ")";
         }
-        if(city != null && !langQuery.isEmpty())
+
+        if(city != null && !langQuery.isEmpty() && !searchQuery.isEmpty())
+            requestQuery = "city:" + city + " AND " + langQuery + "AND" + searchQuery;
+        else if(city == null && !langQuery.isEmpty() && !searchQuery.isEmpty())
+            requestQuery = langQuery + "AND" + searchQuery;
+        else if(lang == null && city != null && !searchQuery.isEmpty())
+            requestQuery = "city:" + city + "AND" + searchQuery;
+        else if(search == null && city != null && !langQuery.isEmpty())
             requestQuery = "city:" + city + " AND " + langQuery;
-        else if(city == null && !langQuery.isEmpty())
+        else if(city == null && lang == null && !searchQuery.isEmpty())
+            requestQuery = searchQuery;
+        else if(city == null && search == null && !langQuery.isEmpty())
             requestQuery = langQuery;
-        else if(lang == null && city != null)
-            requestQuery = "city:" + city;
+        else if(lang == null && search == null && city != null)
+            requestQuery = city;
         else
             requestQuery = "*:*";
         SolrClient solrClient = controller.getSolrClient();

@@ -22,22 +22,22 @@ public class SearchController {
     private static final Logger LOG = LoggerFactory.getLogger(SearchController.class);
 
     /**
-     * API- http://localhost:5000/tweets/count?city=NYC
+     * API- http://localhost:5000/tweets/cities/count?city=NYC
      * @param city non-mandatory query param, if not provided- perform search on all 5 cities
      * @return
      */
-    @GetMapping(value = {"/tweets/count"})
+    @GetMapping(value = {"/tweets/cities/count"})
     public JSONObject getCityTweetCount(@RequestParam(value = "city", required = false) String city) {
         LOG.info("Fetching city-tweet count..");
         return searchService.getCityTweetCount(city);
     }
 
     /**
-     * API- http://localhost:5000/tweets/language-count?lang=en
+     * API- http://localhost:5000/tweets/languages/count?lang=en
      * @param language non-mandatory query param, if not provided- perform search on all 5 languages
      * @return
      */
-    @GetMapping(value = {"/tweets/languages"})
+    @GetMapping(value = {"/tweets/languages/count"})
     public JSONObject getLanguageTweetCount(@RequestParam(value = "lang", required = false) String language) {
         LOG.info("Fetching lang-tweet count..");
         return searchService.getLanguageTweetCount(language);
@@ -53,9 +53,9 @@ public class SearchController {
      * @return
      */
     @GetMapping(value = {"/tweets/list"})
-    public TweetData getTweets(@RequestParam(value = "city", required = false) String city, @RequestParam(value = "lang", required = false) String lang, @RequestParam(value = "start", required = false, defaultValue = "0") Integer start, @RequestParam(value = "docs", required = false, defaultValue = "10") int docs) {
+    public TweetData getTweets(@RequestParam(value = "search", required = false) String search, @RequestParam(value = "city", required = false) String city, @RequestParam(value = "lang", required = false) String lang, @RequestParam(value = "start", required = false, defaultValue = "0") Integer start, @RequestParam(value = "docs", required = false, defaultValue = "10") int docs) {
         LOG.info("Fetching tweets..");
-        return searchService.getTweets(city,lang,start,docs);
+        return searchService.getTweets(search,city,lang,start,docs);
     }
 
     /**
@@ -67,4 +67,6 @@ public class SearchController {
         LOG.info("Fetching hashtags..");
         return searchService.getHashtags();
     }
+
+
 }
