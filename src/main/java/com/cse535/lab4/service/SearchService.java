@@ -4,6 +4,7 @@ import com.cse535.lab4.controller.Controller;
 import com.cse535.lab4.model.Hashtag;
 import com.cse535.lab4.model.TweetCountData;
 import com.cse535.lab4.model.TweetData;
+import com.cse535.lab4.model.WeekTweetVolume;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -35,9 +36,17 @@ public class SearchService implements InitializingBean {
     private Environment env;
 
     private ArrayList<Hashtag> hashtags;
+    private JSONObject weekTweetVolume;
 
     private static final Logger LOG = LoggerFactory.getLogger(SearchService.class);
     private static final String[] cities = {"nyc","paris","delhi", "bangkok", "mexico"};
+    private static final String[] filterDates = {"[2018-10-01T20:00:00Z TO 2018-10-07T20:00:00Z]",
+            "[2018-10-08T20:00:00Z TO 2018-10-14T20:00:00Z]",
+            "[2018-10-15T20:00:00Z TO 2018-10-21T20:00:00Z]",
+            "[2018-10-22T20:00:00Z TO 2018-10-28T20:00:00Z]",
+            "[2018-10-29T20:00:00Z TO 2018-11-04T20:00:00Z]",
+            "[2018-11-05T20:00:00Z TO 2018-11-11T20:00:00Z]",
+            "[2018-11-12T20:00:00Z TO 2018-11-18T20:00:00Z]"};
 
     public TweetData getTweets(String city, String lang, Integer start, int docs) {
         LOG.info("Fetching tweets from solr..");
@@ -202,6 +211,63 @@ public class SearchService implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         hashtags = getHashtagsList();
+        weekTweetVolume = getWeekTweetVolumeData();
+    }
+
+    private JSONObject getWeekTweetVolumeData() {
+        LOG.info("Fetching weekly tweet volume data from solr..");
+        JSONObject weekTweetVolumeObject = new JSONObject();
+        ArrayList<WeekTweetVolume> weekTweetVolume = new ArrayList<>();
+        JSONArray weeklyTweetVolumeData = new JSONArray();
+        CompletableFuture<WeekTweetVolume> week1 = getWeekTweetVolumeDataForWeek(filterDates[0], env.getProperty("startDateWeek1"), env.getProperty("endDateWeek1"));
+        CompletableFuture<WeekTweetVolume> week2 = getWeekTweetVolumeDataForWeek(filterDates[1], env.getProperty("startDateWeek2"), env.getProperty("endDateWeek2"));
+        CompletableFuture<WeekTweetVolume> week3 = getWeekTweetVolumeDataForWeek(filterDates[2], env.getProperty("startDateWeek3"), env.getProperty("endDateWeek3"));
+        CompletableFuture<WeekTweetVolume> week4 = getWeekTweetVolumeDataForWeek(filterDates[3], env.getProperty("startDateWeek4"), env.getProperty("endDateWeek4"));
+        CompletableFuture<WeekTweetVolume> week5 = getWeekTweetVolumeDataForWeek(filterDates[4], env.getProperty("startDateWeek5"), env.getProperty("endDateWeek5"));
+        CompletableFuture<WeekTweetVolume> week6 = getWeekTweetVolumeDataForWeek(filterDates[5], env.getProperty("startDateWeek6"), env.getProperty("endDateWeek6"));
+        CompletableFuture<WeekTweetVolume> week7 = getWeekTweetVolumeDataForWeek(filterDates[6], env.getProperty("startDateWeek7"), env.getProperty("endDateWeek7"));
+        CompletableFuture.allOf(week1,week2,week3,week4,week5,week6,week7).join();
+        try {
+            weeklyTweetVolumeData.add(week1.get());
+            weeklyTweetVolumeData.add(week2.get());
+            weeklyTweetVolumeData.add(week3.get());
+            weeklyTweetVolumeData.add(week4.get());
+            weeklyTweetVolumeData.add(week5.get());
+            weeklyTweetVolumeData.add(week6.get());
+            weeklyTweetVolumeData.add(week7.get());
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("Error fetching weekly tweet volume data.. ");
+        }
+        weekTweetVolumeObject.put("tweetVolumeData",weeklyTweetVolumeData);
+        LOG.info("Fetched weekly tweet volume data!");
+        return weekTweetVolumeObject;
+    }
+
+    @Async
+    public CompletableFuture<WeekTweetVolume> getWeekTweetVolumeDataForWeek(String dateFilter, String startDate, String endDate) {
+        long tweetCount = 0;
+        String weekQuery = "tweet_date:" + dateFilter;
+        LOG.debug("Fetching tweet count from solr for week: " + dateFilter );
+        SolrClient solrClient = controller.getSolrClient();
+        SolrQuery query = new SolrQuery();
+        query.set("q", "*:*");
+        query.set("rows", "1000000");
+        query.setStart(0);
+        query.set("fq", weekQuery);
+        LOG.debug("Query: " + query.getQuery());
+        try {
+            QueryResponse response = solrClient.query(query);
+            tweetCount = response.getResults().getNumFound();
+            LOG.debug("Tweet count: " + tweetCount);
+            LOG.info("Fetched tweet count for week " + dateFilter);
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching data from solr", e);
+        }
+        WeekTweetVolume weekVolumeObj = new WeekTweetVolume();
+        weekVolumeObj.setCount(tweetCount);
+        weekVolumeObj.setStartDate(startDate);
+        weekVolumeObj.setEndDate(endDate);
+        return CompletableFuture.completedFuture(weekVolumeObj);
     }
 
     private ArrayList<Hashtag> getHashtagsList() {
@@ -235,5 +301,9 @@ public class SearchService implements InitializingBean {
 
     public ArrayList<Hashtag> getHashtags() {
         return hashtags;
+    }
+
+    public JSONObject getWeeklyTweetVolumeData() {
+        return weekTweetVolume;
     }
 }

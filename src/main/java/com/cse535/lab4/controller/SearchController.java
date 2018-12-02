@@ -56,4 +56,10 @@ public class SearchController {
         LOG.info("Fetching hashtags..");
         return searchService.getHashtags();
     }
+
+    @GetMapping(value = {"/tweets/weeklyVolume"})
+    public JSONObject getweeklyVolumeData() {
+        LOG.info("Fetching weekly volume data..");
+        return searchService.getWeeklyTweetVolumeData();
+    }
 }
