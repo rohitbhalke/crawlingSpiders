@@ -1,5 +1,6 @@
 package com.cse535.lab4.controller;
 
+import com.cse535.lab4.model.CitySentiment;
 import com.cse535.lab4.model.CityTopicWeekSentiment;
 import com.cse535.lab4.model.Hashtag;
 import com.cse535.lab4.model.TweetData;
@@ -90,5 +91,16 @@ public class SearchController {
     public ArrayList<CityTopicWeekSentiment> getCityTopicWeeklySentiments(@RequestParam(value = "city", required = true) String city, @RequestParam(value = "topic", required = true) String topic) {
         LOG.info("Fetching city topic wise weekly sentiments..");
         return searchService.getCityTopicWeeklySentiments(city, topic);
+    }
+
+    /**
+     * API- http://localhost:5000/tweets?search=#trump
+     * @param search non-mandatory param, if not provided, perform a wild search
+     * @return city based positive, negative and neutral sentiment count
+     */
+    @GetMapping(value = {"/tweets/searchBasedCitySentiments"})
+    public ArrayList<CitySentiment> getSearchBasedCitySentiments(@RequestParam(value = "search", required = false) String search) {
+        LOG.info("Fetching search based city sentiments..");
+        return searchService.getCityWiseSearchTopicSentimentData(search);
     }
 }

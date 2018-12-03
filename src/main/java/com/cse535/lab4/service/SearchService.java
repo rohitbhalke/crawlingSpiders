@@ -457,4 +457,92 @@ public class SearchService implements InitializingBean {
 
         return  cityTopicWeekSentiments;
     }
+
+    @Async
+    public CompletableFuture<CitySentiment> getSearchBasedSentimentsForCity(String city, String search) {
+        CitySentiment citySentiment = new CitySentiment();
+        long positiveCount;
+        long negativeCount;
+        long neutralCount;
+        String searchQuery = "";
+
+        if(search != null) {
+            String[] strs = search.split(",");
+            for (int i=0; i<strs.length; i++) {
+                String s = strs[i];
+                if(i>0)
+                    searchQuery = searchQuery + " AND ";
+                if(s.startsWith("\"")) {
+                    searchQuery = searchQuery + s.substring(1,s.length()-1);
+                } else if (s.startsWith("#")) {
+                    searchQuery = searchQuery + "hashtags:" + s.substring(1,s.length());
+                } else {
+                    searchQuery = searchQuery + s;
+                }
+            }
+        }
+
+        if(searchQuery.isEmpty()) {
+            searchQuery = "*:* AND city:" + city;
+        } else {
+            searchQuery = searchQuery + " AND city:" + city;
+        }
+
+        SolrClient solrClient = controller.getSolrClient();
+        SolrQuery query = new SolrQuery();
+        query.set("q", searchQuery);
+        query.set("rows", 1);
+        query.setStart(0);
+        query.setFacet(true);
+        String positivefacetQuery = "sentiment:positive";
+        String negativefacetQuery = "sentiment:negative";
+        String neutralfacetQuery = "sentiment:neutral";
+        query.addFacetQuery(positivefacetQuery);
+        query.addFacetQuery(negativefacetQuery);
+        query.addFacetQuery(neutralfacetQuery);
+        LOG.debug("Query: " + query.getQuery());
+        try {
+            QueryResponse response = solrClient.query(query);
+            if(response != null) {
+                positiveCount = response.getFacetQuery().get("sentiment:positive");
+                negativeCount = response.getFacetQuery().get("sentiment:negative");
+                neutralCount = response.getFacetQuery().get("sentiment:neutral");
+                LOG.debug("Positive: " + positiveCount + "Negative: " + negativeCount + "Neutral: " + neutralCount);
+                citySentiment.setCity(city);
+                citySentiment.setPositiveCount(positiveCount);
+                citySentiment.setNegativeCount(negativeCount);
+                citySentiment.setNeutralCount(neutralCount);
+                LOG.info("Fetched search based sentiments for city from solr!");
+            } else {
+                LOG.info("No search result from solr for query: " + query.getQuery());
+            }
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching/searching tweets on solr", e);
+        }
+        return CompletableFuture.completedFuture(citySentiment);
+    }
+
+    public ArrayList<CitySentiment> getCityWiseSearchTopicSentimentData(String search) {
+        LOG.info("Fetching city wise sentiment data for search topic..");
+        ArrayList<CitySentiment> citySentiments = new ArrayList<>();
+
+        CompletableFuture<CitySentiment> nyc = getSearchBasedSentimentsForCity(cities[0], search);
+        CompletableFuture<CitySentiment> paris = getSearchBasedSentimentsForCity(cities[1], search);
+        CompletableFuture<CitySentiment> delhi = getSearchBasedSentimentsForCity(cities[2], search);
+        CompletableFuture<CitySentiment> bangkok = getSearchBasedSentimentsForCity(cities[3], search);
+        CompletableFuture<CitySentiment> mexico = getSearchBasedSentimentsForCity(cities[4], search);
+        CompletableFuture.allOf(nyc,paris,delhi,bangkok,mexico).join();
+
+        try {
+            citySentiments.add(nyc.get());
+            citySentiments.add(paris.get());
+            citySentiments.add(delhi.get());
+            citySentiments.add(bangkok.get());
+            citySentiments.add(mexico.get());
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("Error fetching search based city sentiment data.. ");
+        }
+        LOG.info("Fetched search based sentiments for city from solr!");
+        return citySentiments;
+    }
 }
