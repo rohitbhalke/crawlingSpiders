@@ -1,11 +1,7 @@
 package com.cse535.lab4.service;
 
 import com.cse535.lab4.controller.Controller;
-import com.cse535.lab4.model.Hashtag;
-import com.cse535.lab4.model.LanguageTweetData;
-import com.cse535.lab4.model.TweetCountData;
-import com.cse535.lab4.model.TweetData;
-import com.cse535.lab4.model.WeekTweetVolume;
+import com.cse535.lab4.model.*;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -391,5 +387,74 @@ public class SearchService implements InitializingBean {
 
     public JSONObject getWeeklyTweetVolumeData() {
         return weekTweetVolume;
+    }
+
+    @Async
+    public CompletableFuture<CityTopicWeekSentiment> getCityTopicSentimentDataForWeek(String dateFilter, String startDate, String endDate, String city, String topic) {
+        long positiveCount = 0;
+        long negativeCount = 0;
+        long neutralCount = 0;
+        String weekQuery = "tweet_date:" + dateFilter;
+        LOG.debug("Fetching city topic sentiment data from solr for week: " + dateFilter );
+        SolrClient solrClient = controller.getSolrClient();
+        SolrQuery query = new SolrQuery();
+        query.set("q", "city:" + city + " AND topic:" + topic);
+        query.set("rows", "1");
+        query.setStart(0);
+        query.set("fq", weekQuery);
+        query.setFacet(true);
+        String positivefacetQuery = "sentiment:positive";
+        String negativefacetQuery = "sentiment:negative";
+        String neutralfacetQuery = "sentiment:neutral";
+        query.addFacetQuery(positivefacetQuery);
+        query.addFacetQuery(negativefacetQuery);
+        query.addFacetQuery(neutralfacetQuery);
+        LOG.debug("Query: " + query.getQuery());
+        try {
+            QueryResponse response = solrClient.query(query);
+            positiveCount = response.getFacetQuery().get("sentiment:positive");
+            negativeCount = response.getFacetQuery().get("sentiment:negative");
+            neutralCount = response.getFacetQuery().get("sentiment:neutral");
+            LOG.debug("Positive: " + positiveCount + "Negative: " + negativeCount + "Neutral: " + neutralCount);
+            LOG.info("Fetched tweet count for week " + dateFilter);
+        } catch (SolrServerException | IOException e) {
+            LOG.error("Error fetching data from solr", e);
+        }
+        CityTopicWeekSentiment cityTopicWeekSentimentObject = new CityTopicWeekSentiment();
+        cityTopicWeekSentimentObject.setPositiveCount(positiveCount);
+        cityTopicWeekSentimentObject.setNegativeCount(negativeCount);
+        cityTopicWeekSentimentObject.setNeutralCount(neutralCount);
+        cityTopicWeekSentimentObject.setStartDate(startDate);
+        cityTopicWeekSentimentObject.setEndDate(endDate);
+        return CompletableFuture.completedFuture(cityTopicWeekSentimentObject);
+    }
+
+    public ArrayList<CityTopicWeekSentiment> getCityTopicWeeklySentiments(String city, String topic) {
+        ArrayList<CityTopicWeekSentiment> cityTopicWeekSentiments = new ArrayList<>();
+
+        LOG.info("Fetching city topic weekly sentiment data from solr..");
+
+        CompletableFuture<CityTopicWeekSentiment> week1 = getCityTopicSentimentDataForWeek(filterDates[0], env.getProperty("startDateWeek1"), env.getProperty("endDateWeek1"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week2 = getCityTopicSentimentDataForWeek(filterDates[1], env.getProperty("startDateWeek2"), env.getProperty("endDateWeek2"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week3 = getCityTopicSentimentDataForWeek(filterDates[2], env.getProperty("startDateWeek3"), env.getProperty("endDateWeek3"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week4 = getCityTopicSentimentDataForWeek(filterDates[3], env.getProperty("startDateWeek4"), env.getProperty("endDateWeek4"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week5 = getCityTopicSentimentDataForWeek(filterDates[4], env.getProperty("startDateWeek5"), env.getProperty("endDateWeek5"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week6 = getCityTopicSentimentDataForWeek(filterDates[5], env.getProperty("startDateWeek6"), env.getProperty("endDateWeek6"), city, topic);
+        CompletableFuture<CityTopicWeekSentiment> week7 = getCityTopicSentimentDataForWeek(filterDates[6], env.getProperty("startDateWeek7"), env.getProperty("endDateWeek7"), city, topic);
+        CompletableFuture.allOf(week1,week2,week3,week4,week5,week6,week7).join();
+        try {
+            cityTopicWeekSentiments.add(week1.get());
+            cityTopicWeekSentiments.add(week2.get());
+            cityTopicWeekSentiments.add(week3.get());
+            cityTopicWeekSentiments.add(week4.get());
+            cityTopicWeekSentiments.add(week5.get());
+            cityTopicWeekSentiments.add(week6.get());
+            cityTopicWeekSentiments.add(week7.get());
+        } catch (InterruptedException | ExecutionException e) {
+            LOG.error("Error fetching weekly city topic sentiment data.. ");
+        }
+        LOG.info("Fetched weekly city topic sentiment data!");
+
+        return  cityTopicWeekSentiments;
     }
 }

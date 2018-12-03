@@ -1,5 +1,6 @@
 package com.cse535.lab4.controller;
 
+import com.cse535.lab4.model.CityTopicWeekSentiment;
 import com.cse535.lab4.model.Hashtag;
 import com.cse535.lab4.model.TweetData;
 import com.cse535.lab4.service.SearchService;
@@ -68,11 +69,26 @@ public class SearchController {
         return searchService.getHashtags();
     }
 
+    /**
+     * API- http://localhost:5000/tweets/weeklyVolume
+     * @return weekly tweet volume data
+     */
     @GetMapping(value = {"/tweets/weeklyVolume"})
     public JSONObject getweeklyVolumeData() {
         LOG.info("Fetching weekly volume data..");
         return searchService.getWeeklyTweetVolumeData();
     }
 
-
+    /**
+     * This API performs sentiment search on the combination of city and topic
+     * API- http://localhost:5000/tweets/cityTopicWeeklySentiments
+     * @param city mandatory param, performs sentiment search based on the given city
+     * @param topic mandatory param, performs sentiment search based on the given topic
+     * @return
+     */
+    @GetMapping(value = {"/tweets/cityTopicWeeklySentiments"})
+    public ArrayList<CityTopicWeekSentiment> getCityTopicWeeklySentiments(@RequestParam(value = "city", required = true) String city, @RequestParam(value = "topic", required = true) String topic) {
+        LOG.info("Fetching city topic wise weekly sentiments..");
+        return searchService.getCityTopicWeeklySentiments(city, topic);
+    }
 }
