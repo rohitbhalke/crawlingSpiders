@@ -398,7 +398,8 @@ public class SearchService implements InitializingBean {
         LOG.debug("Fetching city topic sentiment data from solr for week: " + dateFilter );
         SolrClient solrClient = controller.getSolrClient();
         SolrQuery query = new SolrQuery();
-        query.set("q", "city:" + city + " AND topic:" + topic);
+        //query.set("q", "AND city:" + city + " AND topic:" + topic);
+        query.set("q", "topic:" + topic + " AND city:" + city);
         query.set("rows", "1");
         query.setStart(0);
         query.set("fq", weekQuery);
