@@ -285,6 +285,12 @@ public class SearchService implements InitializingBean {
             } else {
                 tweet.put("user.name", "");
             }
+            data = (ArrayList<String>) doc.get("sentiment");
+            if (data != null) {
+                tweet.put("sentiment",data.get(0));
+            } else {
+                tweet.put("sentiment", "");
+            }
             tweets.add(tweet);
         }
         return tweets;
